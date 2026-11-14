@@ -17,6 +17,7 @@ typedef MenuRow =
 	?enter:Void->Void,
 
 	?change:Int->Void,
+	?repeat:Bool,
 
 	?data:Dynamic
 }

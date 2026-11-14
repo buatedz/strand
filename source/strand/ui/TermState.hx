@@ -67,6 +67,12 @@ class TermState extends FlxState
 	inline function rightPressed():Bool
 		return FlxG.keys.anyJustPressed([D, RIGHT]);
 
+	inline function leftHeld():Bool
+		return FlxG.keys.anyPressed([A, LEFT]);
+
+	inline function rightHeld():Bool
+		return FlxG.keys.anyPressed([D, RIGHT]);
+
 	inline function acceptPressed():Bool
 		return FlxG.keys.anyJustPressed([ENTER, SPACE, Z]);
 

@@ -11,6 +11,16 @@ import strand.ui.TermState;
 
 class MenuState extends TermState
 {
+	static inline final HOLD_DELAY:Float = 0.35;
+	static inline final HOLD_FIRST:Float = 0.1;
+	static inline final HOLD_FASTEST:Float = 0.012;
+	static inline final HOLD_SPEEDUP:Float = 3;
+
+	var holdDir:Int = 0;
+	var holdTime:Float = 0;
+	var nextRepeat:Float = 0;
+	var holdUnsaved:Bool = false;
+
 	static var stack:Array<{id:String, sel:Int}> = null;
 
 	var list:MenuList;
@@ -118,11 +128,11 @@ class MenuState extends TermState
 				rows;
 			case 'options': [
 					{label: 'downscroll', value: onoff(Prefs.downscroll), change: d -> Prefs.downscroll = !Prefs.downscroll},
-					{label: 'scroll speed', value: Prefs.scrollSpeed <= 0 ? 'chart default' : Term.fmt1(Prefs.scrollSpeed) + 'x', change: changeSpeed},
+					{label: 'scroll speed', value: Prefs.scrollSpeed <= 0 ? 'chart default' : Term.fmt1(Prefs.scrollSpeed) + 'x', change: changeSpeed, repeat: true},
 					{label: 'notes and strums', value: '-', enter: () -> push('visuals')},
 					{label: 'hud', value: '-', enter: () -> push('hud')},
 					{gap: true},
-					{label: 'volume', value: Prefs.volume + '%', change: d -> Prefs.volume = Std.int(clamp(Prefs.volume + 10 * d, 0, 100))},
+					{label: 'volume', value: Prefs.volume + '%', change: d -> Prefs.volume = Std.int(clamp(Prefs.volume + 10 * d, 0, 100)), repeat: true},
 					{label: 'music', value: onoff(Prefs.music), change: d -> Prefs.music = !Prefs.music},
 					{gap: true},
 					{label: 'framerate', value: Prefs.framerate, change: d -> Prefs.framerate = cycle(Prefs.FRAMERATES, Prefs.framerate, d)},
@@ -131,8 +141,8 @@ class MenuState extends TermState
 					{label: 'fps counter', value: onoff(Prefs.fpsCounter), change: d -> Prefs.fpsCounter = !Prefs.fpsCounter},
 					{label: 'discord rich presence', value: Discord.CLIENT_ID == '' ? 'off (no discord app id yet)' : onoff(Prefs.discordRpc), change: d -> Prefs.discordRpc = !Prefs.discordRpc},
 					{gap: true},
-					{label: 'stack merge', value: Prefs.stackMerge <= 0 ? 'off' : 'notes under ' + Prefs.stackMerge + ' ms apart', change: d -> Prefs.stackMerge = cycle(Prefs.MERGES, Prefs.stackMerge, d)},
-					{label: 'draw skip', value: skipText(), change: d -> Prefs.drawSkip = cycle(Prefs.SKIPS, Prefs.drawSkip, d)},
+					{label: 'stack merge', value: Prefs.stackMerge <= 0 ? 'off' : 'notes under ' + Prefs.stackMerge + ' ms apart', change: changeMerge, repeat: true},
+					{label: 'draw skip', value: skipText(), change: changeSkip, repeat: true},
 					{label: 'stream json', value: onoff(Prefs.streamJson), change: d -> Prefs.streamJson = !Prefs.streamJson},
 					{label: 'stream ahead', value: (Prefs.streamAhead / 1000) + ' s' + (Prefs.streamJson ? '' : '  (stream json is off)'), change: d -> Prefs.streamAhead = cycle(Prefs.AHEADS, Prefs.streamAhead, d)},
 					{gap: true},
@@ -199,6 +209,17 @@ class MenuState extends TermState
 		if (v < 0) return 'adaptive (1 to 32 px)';
 		if (v == 0) return 'off';
 		return 'notes under ' + v + ' px apart';
+	}
+
+	function changeMerge(d:Int):Void
+		Prefs.stackMerge = clamp(Prefs.stackMerge + Prefs.STEP * d, 0, Prefs.MAX_MERGE);
+
+	function changeSkip(d:Int):Void
+	{
+		final v:Float = Prefs.drawSkip;
+		if (v < 0) Prefs.drawSkip = d > 0 ? 0 : -1;
+		else if (v <= 0 && d < 0) Prefs.drawSkip = -1;
+		else Prefs.drawSkip = clamp(v + Prefs.STEP * d, 0, Prefs.MAX_SKIP);
 	}
 
 	function changeSpeed(d:Int):Void
@@ -286,11 +307,33 @@ class MenuState extends TermState
 			else if (row.change != null) row.change(1);
 			afterChange();
 		} else if ((leftPressed() || rightPressed()) && row != null && row.change != null) {
-			row.change(leftPressed() ? -1 : 1);
+			holdDir = leftPressed() ? -1 : 1;
+			holdTime = 0;
+			nextRepeat = HOLD_DELAY;
+			row.change(holdDir);
 			afterChange();
+		} else if (holdDir != 0 && row != null && row.repeat == true && (holdDir < 0 ? leftHeld() : rightHeld())) {
+			holdTime += elapsed;
+			var changed:Bool = false;
+			while (holdTime >= nextRepeat) {
+				row.change(holdDir);
+				nextRepeat += Math.max(HOLD_FASTEST, HOLD_FIRST / (1 + (holdTime - HOLD_DELAY) * HOLD_SPEEDUP));
+				changed = true;
+			}
+			if (changed) {
+				holdUnsaved = true;
+				render(true);
+			}
 		} else if (backPressed()) {
 			if (stack.length > 1) pop();
 			else push('exit');
+		}
+		if (holdDir != 0 && !(holdDir < 0 ? leftHeld() : rightHeld())) {
+			holdDir = 0;
+			if (holdUnsaved) {
+				holdUnsaved = false;
+				afterChange();
+			}
 		}
 		if (FlxG.mouse.wheel != 0) list.move(FlxG.mouse.wheel > 0 ? -1 : 1);
 
