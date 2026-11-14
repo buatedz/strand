@@ -24,6 +24,8 @@ class PlayState extends FlxState
 {
 	static inline final LEAD_IN_MS:Float = 1500;
 	static inline final VOICE_SYNC_MS:Float = 100;
+	static inline final AUDIO_SNAP_MS:Float = 250;
+	static inline final AUDIO_PULL:Float = 4;
 
 	var song:SongInfo;
 	var store:NoteStore;
@@ -269,8 +271,9 @@ class PlayState extends FlxState
 			Discord.playing(song.name, songTime, lengthMs);
 		}
 		if (started && sounds.length > 0 && sounds[0].playing) {
-			final audio:Float = sounds[0].time;
-			if (Math.abs(audio - songTime) > 40) songTime = audio;
+			final drift:Float = sounds[0].time - songTime;
+			if (Math.abs(drift) > AUDIO_SNAP_MS) songTime = sounds[0].time;
+			else songTime += drift * Math.min(1, elapsed * AUDIO_PULL);
 			syncVoices();
 		}
 		store.songTime = songTime;
