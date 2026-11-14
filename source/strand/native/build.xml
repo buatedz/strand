@@ -1,0 +1,18 @@
+<xml>
+  <set name="STRAND_NATIVE_DIR" value="${this_dir}" />
+  <files id="haxe">
+    <compilervalue name="-I" value="${STRAND_NATIVE_DIR}/lzma/" />
+  </files>
+  <files id="strand_lzma" dir="${STRAND_NATIVE_DIR}/lzma">
+    <compilerflag value="-DZ7_ST" />
+    <compilervalue name="-I" value="${STRAND_NATIVE_DIR}/lzma/" />
+    <file name="strand_lzma.c" />
+    <file name="LzmaEnc.c" />
+    <file name="LzmaDec.c" />
+    <file name="LzFind.c" />
+    <file name="CpuArch.c" />
+  </files>
+  <target id="haxe">
+    <files id="strand_lzma" />
+  </target>
+</xml>

@@ -1,0 +1,7 @@
+-cp ../../source
+-cp .
+-main CacheTest
+-D HXCPP_M64
+-D analyzer-optimize
+-dce full
+--cpp bin
