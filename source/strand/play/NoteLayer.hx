@@ -11,6 +11,8 @@ class NoteLayer extends Sprite
 
 	public var store:NoteStore;
 	public var skin(default, null):NoteSkin;
+
+	var renders:Int = 0;
 	public var downscroll:Bool = false;
 	public var pxPerMs:Float = 0.45;
 
@@ -91,6 +93,10 @@ class NoteLayer extends Sprite
 
 	public function render(songTime:Float):Void
 	{
+		if (++renders == 2) {
+			skin.atlas.disposeImage();
+			@:privateAccess skin.atlas.image = null;
+		}
 		drawnNotes = 0;
 		skippedNotes = 0;
 		mergedNotes = 0;
