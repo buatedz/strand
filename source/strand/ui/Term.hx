@@ -86,6 +86,27 @@ class Term
 		return fmt1(n / 1073741824) + ' GB';
 	}
 
+	public static function memory(n:Float, unit:String):String
+	{
+		return switch (unit)
+		{
+			case 'kb': fmtInt(n / 1e3) + ' KB';
+			case 'mb': fmt1(n / 1e6) + ' MB';
+			case 'gb': fmt2(n / 1e9) + ' GB';
+			case 'kib': fmtInt(n / 1024) + ' KiB';
+			case 'mib': fmt1(n / 1048576) + ' MiB';
+			case 'gib': fmt2(n / 1073741824) + ' GiB';
+			default: bytes(n);
+		}
+	}
+
+	static function fmt2(v:Float):String
+	{
+		final s:String = Std.string(Math.round(v * 100) / 100);
+		final dot:Int = s.indexOf('.');
+		return dot < 0 ? s + '.00' : s.length - dot == 2 ? s + '0' : s;
+	}
+
 	public static function shortCount(v:Float):String
 	{
 		if (v < 10000) return fmtInt(v);

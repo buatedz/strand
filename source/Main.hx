@@ -65,7 +65,7 @@ class Main extends Sprite
 		if (now - fpsTime >= 0.5) {
 			final mem:Float = cpp.vm.Gc.memInfo64(cpp.vm.Gc.MEM_INFO_USAGE);
 			if (mem > peakMem) peakMem = mem;
-			fps.text = 'fps ' + Math.round(fpsFrames / (now - fpsTime)) + '   mem ' + Term.bytes(mem) + '   peak ' + Term.bytes(peakMem);
+			fps.text = 'fps ' + Math.round(fpsFrames / (now - fpsTime)) + '   mem ' + Term.memory(mem, Prefs.memUnit) + '   peak ' + Term.memory(peakMem, Prefs.memUnit);
 			fpsFrames = 0;
 			fpsTime = now;
 		}

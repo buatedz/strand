@@ -140,6 +140,7 @@ class MenuState extends TermState
 					{label: 'vsync', value: onoff(Prefs.vsync), change: d -> Prefs.vsync = !Prefs.vsync},
 					{label: 'antialiasing', value: onoff(Prefs.antialiasing), change: d -> Prefs.antialiasing = !Prefs.antialiasing},
 					{label: 'fps counter', value: onoff(Prefs.fpsCounter), change: d -> Prefs.fpsCounter = !Prefs.fpsCounter},
+					{label: 'memory unit', value: Prefs.memUnit, change: d -> Prefs.memUnit = cycle(Prefs.MEM_UNITS, Prefs.memUnit, d)},
 					{label: 'discord rich presence', value: Discord.CLIENT_ID == '' ? 'off (no discord app id yet)' : onoff(Prefs.discordRpc), change: d -> Prefs.discordRpc = !Prefs.discordRpc},
 					{gap: true},
 					{label: 'stack merge', value: Prefs.stackMerge <= 0 ? 'off' : 'notes under ' + Prefs.stackMerge + ' ms apart', change: changeMerge, repeat: true},

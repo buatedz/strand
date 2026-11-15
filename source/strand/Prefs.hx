@@ -13,6 +13,7 @@ class Prefs
 	public static var antialiasing:Bool = false;
 	public static var fpsCounter:Bool = false;
 	public static var discordRpc:Bool = true;
+	public static var memUnit:String = 'auto';
 	public static var runSplitCharts:Bool = false;
 	public static var syncSplitSpeed:Bool = true;
 	public static var syncSplitBpm:Bool = true;
@@ -52,6 +53,7 @@ class Prefs
 	public static final ALPHAS:Array<Float> = [0, 0.1, 0.25, 0.5, 0.65, 0.8, 1];
 
 	public static final FRAMERATES:Array<String> = ['auto', '60', '120', '144', '240', 'unlimited'];
+	public static final MEM_UNITS:Array<String> = ['auto', 'kb', 'mb', 'gb', 'kib', 'mib', 'gib'];
 	public static inline final STEP:Float = 0.25;
 	public static inline final FINE_STEP:Float = 0.05;
 	public static inline final MAX_MERGE:Float = 10;
@@ -59,7 +61,7 @@ class Prefs
 	public static final AHEADS:Array<Int> = [2000, 4000, 8000, 15000, 30000];
 
 	static final FIELDS:Array<String> = [
-		'downscroll', 'scrollSpeed', 'volume', 'music', 'framerate', 'vsync', 'antialiasing', 'fpsCounter', 'discordRpc', 'stackMerge', 'drawSkip', 'streamJson', 'streamAhead',
+		'downscroll', 'scrollSpeed', 'volume', 'music', 'framerate', 'vsync', 'antialiasing', 'fpsCounter', 'memUnit', 'discordRpc', 'stackMerge', 'drawSkip', 'streamJson', 'streamAhead',
 		'runSplitCharts', 'syncSplitSpeed', 'syncSplitBpm',
 		'noteSkin', 'middlescroll', 'opponentNotes', 'oppNoteAlpha', 'showNotes', 'drawHolds', 'lightOppStrums', 'lightPlayerStrums',
 		'strumLitStyle', 'noteSplashes', 'oppNoteSplashes', 'splashType', 'hideHud', 'timeBar', 'showNps', 'showRendered'
@@ -88,6 +90,7 @@ class Prefs
 		if (!strand.play.NoteSkin.SPLASHES.contains(splashType)) splashType = 'Default';
 		if (!LIT_STYLES.contains(strumLitStyle)) strumLitStyle = 'Full Anim';
 		if (!TIME_BARS.contains(timeBar)) timeBar = 'Time Left';
+		if (!MEM_UNITS.contains(memUnit)) memUnit = 'auto';
 		oppNoteAlpha = Math.max(0, Math.min(1, oppNoteAlpha));
 		stackMerge = Math.max(0, Math.min(MAX_MERGE, stackMerge));
 		drawSkip = drawSkip < 0 ? -1 : Math.min(MAX_SKIP, drawSkip);
