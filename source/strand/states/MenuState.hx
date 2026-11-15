@@ -223,14 +223,21 @@ class MenuState extends TermState
 	}
 
 	function changeMerge(d:Int):Void
-		Prefs.stackMerge = clamp(Prefs.stackMerge + Prefs.STEP * d, 0, Prefs.MAX_MERGE);
+		Prefs.stackMerge = stepValue(Prefs.stackMerge, d, Prefs.MAX_MERGE);
 
 	function changeSkip(d:Int):Void
 	{
 		final v:Float = Prefs.drawSkip;
 		if (v < 0) Prefs.drawSkip = d > 0 ? 0 : -1;
 		else if (v <= 0 && d < 0) Prefs.drawSkip = -1;
-		else Prefs.drawSkip = clamp(v + Prefs.STEP * d, 0, Prefs.MAX_SKIP);
+		else Prefs.drawSkip = stepValue(v, d, Prefs.MAX_SKIP);
+	}
+
+	static function stepValue(v:Float, d:Int, max:Float):Float
+	{
+		final fine:Bool = d > 0 ? v < Prefs.STEP : v <= Prefs.STEP;
+		final next:Float = v + (fine ? Prefs.FINE_STEP : Prefs.STEP) * d;
+		return clamp(Math.round(next * 100) / 100, 0, max);
 	}
 
 	function changeSpeed(d:Int):Void

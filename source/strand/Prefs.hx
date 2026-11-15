@@ -53,6 +53,7 @@ class Prefs
 
 	public static final FRAMERATES:Array<String> = ['auto', '60', '120', '144', '240', 'unlimited'];
 	public static inline final STEP:Float = 0.25;
+	public static inline final FINE_STEP:Float = 0.05;
 	public static inline final MAX_MERGE:Float = 10;
 	public static inline final MAX_SKIP:Float = 32;
 	public static final AHEADS:Array<Int> = [2000, 4000, 8000, 15000, 30000];
