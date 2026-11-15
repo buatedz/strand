@@ -102,7 +102,7 @@ class Discord
 	public static function playing(song:String, positionMs:Float, lengthMs:Float):Void
 	{
 		final start:Float = Date.now().getTime() - Math.max(0, positionMs);
-		show({details: 'Watching a song', state: song, timestamps: {start: Math.round(start), end: Math.round(start + lengthMs)}});
+		show({details: 'Playing a song', state: song, timestamps: {start: Std.int(start / 1000), end: Std.int((start + lengthMs) / 1000)}});
 	}
 
 	static function show(activity:Dynamic):Void
