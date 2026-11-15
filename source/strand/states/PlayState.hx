@@ -43,6 +43,8 @@ class PlayState extends FlxState
 	var started:Bool = false;
 	var lengthMs:Float = 0;
 	var speed:Float = 1;
+	var splitParts:Array<strand.chart.ChartMeta.SplitPart> = [];
+	var splitActive:Int = -1;
 	var ending:Bool = false;
 
 	public var chartNotesPassed:Float = 0;
@@ -89,6 +91,10 @@ class PlayState extends FlxState
 		bgColor = FlxColor.BLACK;
 		final meta = store.entry.meta;
 		speed = Prefs.scrollSpeed > 0 ? Prefs.scrollSpeed : (meta.speed > 0 ? meta.speed : 1);
+		if (Prefs.runSplitCharts && meta.parts.length > 1) {
+			splitParts = meta.parts.copy();
+			splitParts.sort((a, b) -> a.startMs < b.startMs ? -1 : a.startMs > b.startMs ? 1 : 0);
+		}
 		chartTotalNotes = store.totals[NoteStore.PLAYER];
 		oppChartTotalNotes = store.totals[NoteStore.OPP];
 
@@ -290,6 +296,7 @@ class PlayState extends FlxState
 			else if (fpsAvg > target * 0.97) adaptiveSkip = Math.max(1, adaptiveSkip / 1.05);
 			layer.skipPx = adaptiveSkip;
 		} else layer.skipPx = Prefs.drawSkip;
+		if (splitParts.length > 1) syncSplit();
 		layer.render(songTime);
 
 		updateStats();
@@ -297,6 +304,27 @@ class PlayState extends FlxState
 			updateScriptVars();
 			for (s in scripts) if (!s.closed) updateScriptGlobals(s);
 			callScripts('onUpdatePost', [elapsed]);
+		}
+	}
+
+	function syncSplit():Void
+	{
+		var active:Int = -1;
+		for (i in 0...splitParts.length) {
+			final p = splitParts[i];
+			if (p.startMs > songTime) break;
+			if (p.endMs >= songTime || active < 0) active = i;
+		}
+		if (active < 0 || active == splitActive) return;
+		splitActive = active;
+		final p = splitParts[active];
+		if (Prefs.syncSplitSpeed && Prefs.scrollSpeed <= 0 && p.speed > 0) {
+			speed = p.speed;
+			layer.pxPerMs = 0.45 * speed;
+		}
+		if (Prefs.syncSplitBpm && p.bpm > 0) {
+			layer.stepMs = 60000 / p.bpm / 4;
+			if (Prefs.strumLitStyle == 'BPM Based') layer.litMs = layer.stepMs * 1.5;
 		}
 	}
 

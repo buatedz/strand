@@ -53,7 +53,7 @@ class LoadState extends TermState
 			phase = 'waiting for the background reader';
 			Songs.waitFor(song.key);
 			phase = 'checking cache.bin';
-			final entry:CacheEntry = ChartLoader.entryFor(Songs.cache, song.key, song.chartPath, Songs.threads());
+			final entry:CacheEntry = ChartLoader.entryFor(Songs.cache, song.key, song.paths, Songs.threads());
 			Songs.refresh(song);
 			if (cancel) {
 				done = true;

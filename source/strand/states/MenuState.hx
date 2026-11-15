@@ -84,8 +84,8 @@ class MenuState extends TermState
 			case 'freeplay':
 				setTitle(['freeplay']);
 				setHint(['w/s up/down  select', 'enter  play', 'esc  back']);
-			case 'options' | 'visuals' | 'hud':
-				setTitle(t.id == 'options' ? ['options'] : ['options', t.id == 'hud' ? 'hud' : 'notes and strums']);
+			case 'options' | 'visuals' | 'hud' | 'split':
+				setTitle(t.id == 'options' ? ['options'] : ['options', t.id == 'hud' ? 'hud' : t.id == 'split' ? 'split charts' : 'notes and strums']);
 				setHint(['w/s up/down  select', 'a/d left/right  change', 'esc  back']);
 			case 'credits':
 				setTitle(['credits']);
@@ -131,6 +131,7 @@ class MenuState extends TermState
 					{label: 'scroll speed', value: Prefs.scrollSpeed <= 0 ? 'chart default' : Term.fmt1(Prefs.scrollSpeed) + 'x', change: changeSpeed, repeat: true},
 					{label: 'notes and strums', value: '-', enter: () -> push('visuals')},
 					{label: 'hud', value: '-', enter: () -> push('hud')},
+					{label: 'split charts', value: onoff(Prefs.runSplitCharts), enter: () -> push('split')},
 					{gap: true},
 					{label: 'volume', value: Prefs.volume + '%', change: d -> Prefs.volume = Std.int(clamp(Prefs.volume + 10 * d, 0, 100)), repeat: true},
 					{label: 'music', value: onoff(Prefs.music), change: d -> Prefs.music = !Prefs.music},
@@ -178,6 +179,16 @@ class MenuState extends TermState
 					{label: 'time bar', value: Prefs.timeBar.toLowerCase(), change: d -> Prefs.timeBar = cycle(Prefs.TIME_BARS, Prefs.timeBar, d)},
 					{label: 'show nps', value: onoff(Prefs.showNps), change: d -> Prefs.showNps = !Prefs.showNps},
 					{label: 'show rendered notes', value: onoff(Prefs.showRendered), change: d -> Prefs.showRendered = !Prefs.showRendered},
+					{gap: true},
+					{label: 'back', act: true, enter: pop}
+				];
+			case 'split': [
+					{label: 'run split charts', value: onoff(Prefs.runSplitCharts), change: d -> {
+						Prefs.runSplitCharts = !Prefs.runSplitCharts;
+						Songs.scan();
+					}},
+					{label: 'sync scroll speed', value: onoff(Prefs.syncSplitSpeed), change: d -> Prefs.syncSplitSpeed = !Prefs.syncSplitSpeed},
+					{label: 'sync bpm', value: onoff(Prefs.syncSplitBpm), change: d -> Prefs.syncSplitBpm = !Prefs.syncSplitBpm},
 					{gap: true},
 					{label: 'back', act: true, enter: pop}
 				];
@@ -346,7 +357,7 @@ class MenuState extends TermState
 
 	function afterChange():Void
 	{
-		if (['options', 'visuals', 'hud'].contains(top().id)) {
+		if (['options', 'visuals', 'hud', 'split'].contains(top().id)) {
 			Prefs.save();
 			Prefs.apply();
 		}

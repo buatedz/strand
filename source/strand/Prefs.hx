@@ -13,6 +13,9 @@ class Prefs
 	public static var antialiasing:Bool = false;
 	public static var fpsCounter:Bool = false;
 	public static var discordRpc:Bool = true;
+	public static var runSplitCharts:Bool = false;
+	public static var syncSplitSpeed:Bool = true;
+	public static var syncSplitBpm:Bool = true;
 
 	public static var stackMerge:Float = 1;
 
@@ -56,6 +59,7 @@ class Prefs
 
 	static final FIELDS:Array<String> = [
 		'downscroll', 'scrollSpeed', 'volume', 'music', 'framerate', 'vsync', 'antialiasing', 'fpsCounter', 'discordRpc', 'stackMerge', 'drawSkip', 'streamJson', 'streamAhead',
+		'runSplitCharts', 'syncSplitSpeed', 'syncSplitBpm',
 		'noteSkin', 'middlescroll', 'opponentNotes', 'oppNoteAlpha', 'showNotes', 'drawHolds', 'lightOppStrums', 'lightPlayerStrums',
 		'strumLitStyle', 'noteSplashes', 'oppNoteSplashes', 'splashType', 'hideHud', 'timeBar', 'showNps', 'showRendered'
 	];

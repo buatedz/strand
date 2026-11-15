@@ -1,5 +1,7 @@
 package strand.chart;
 
+typedef SplitPart = {speed:Float, bpm:Float, startMs:Float, endMs:Float};
+
 class ChartMeta
 {
 	public var song:String = '';
@@ -16,6 +18,7 @@ class ChartMeta
 	public var peakNps:Float = 0;
 	public var dropped:Float = 0;
 	public var format:String = 'json';
+	public var parts:Array<SplitPart> = [];
 
 	public function new() {}
 
@@ -32,7 +35,8 @@ class ChartMeta
 			avgNps: avgNps,
 			peakNps: peakNps,
 			dropped: dropped,
-			format: format
+			format: format,
+			parts: parts
 		};
 
 	public static function fromObject(o:Dynamic):ChartMeta
@@ -51,6 +55,10 @@ class ChartMeta
 		m.peakNps = num(o.peakNps, 0);
 		m.dropped = num(o.dropped, 0);
 		m.format = o.format != null ? o.format : 'json';
+		final parts:Array<Dynamic> = o.parts;
+		if (parts != null)
+			for (p in parts)
+				m.parts.push({speed: num(p.speed, 1), bpm: num(p.bpm, 100), startMs: num(p.startMs, 0), endMs: num(p.endMs, 0)});
 		return m;
 	}
 

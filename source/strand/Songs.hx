@@ -8,7 +8,7 @@ import strand.chart.ChartMeta;
 class SongInfo
 {
 	public var folder:String;
-	public var chartPath:String;
+	public var paths:Array<String>;
 	public var key:String;
 	public var bytes:Float = 0;
 
@@ -60,13 +60,20 @@ class Songs
 			for (folder in folders) {
 				final dir:String = Paths.data() + '/' + folder;
 				if (!sys.FileSystem.isDirectory(dir)) continue;
-				final chart:String = pickChart(dir, folder);
-				if (chart == null) continue;
+				final charts:Array<String> = chartFiles(dir);
+				if (charts.length == 0) continue;
 				final s:SongInfo = new SongInfo();
 				s.folder = folder;
-				s.chartPath = dir + '/' + chart;
-				s.key = ('data/' + folder + '/' + chart).toLowerCase();
-				s.bytes = strand.native.Native.fileSize(s.chartPath);
+				if (Prefs.runSplitCharts && charts.length > 1) {
+					s.paths = [for (c in charts) dir + '/' + c];
+					s.key = ('data/' + folder + '/#layered').toLowerCase();
+				} else {
+					final chart:String = pickChart(charts, folder);
+					s.paths = [dir + '/' + chart];
+					s.key = ('data/' + folder + '/' + chart).toLowerCase();
+				}
+				s.bytes = 0;
+				for (p in s.paths) s.bytes += strand.native.Native.fileSize(p);
 				refresh(s);
 				out.push(s);
 			}
@@ -82,11 +89,15 @@ class Songs
 		return x < y ? -1 : x > y ? 1 : 0;
 	}
 
-	static function pickChart(dir:String, folder:String):String
+	static function chartFiles(dir:String):Array<String>
 	{
 		final files:Array<String> = [for (f in sys.FileSystem.readDirectory(dir)) if (ChartLoader.isChart(f) && !sys.FileSystem.isDirectory(dir + '/' + f)) f];
-		if (files.length == 0) return null;
 		files.sort(compareNames);
+		return files;
+	}
+
+	static function pickChart(files:Array<String>, folder:String):String
+	{
 		final lower:String = folder.toLowerCase();
 		for (want in [lower + '.thr', lower + '.json'])
 			for (f in files) if (f.toLowerCase() == want) return f;
@@ -96,7 +107,7 @@ class Songs
 
 	public static function refresh(s:SongInfo):Void
 	{
-		final e:CacheEntry = cache.find(s.key, ChartLoader.stampOf(s.chartPath));
+		final e:CacheEntry = cache.find(s.key, ChartLoader.stampOfAll(s.paths));
 		if (e != null) {
 			s.meta = e.meta;
 			s.cacheBytes = e.compBytes();
@@ -137,7 +148,7 @@ class Songs
 			if (s.meta == null && s.error == null) {
 				s.building = true;
 				try {
-					final e:CacheEntry = ChartLoader.entryFor(cache, s.key, s.chartPath, Std.int(Math.max(1, threads() / 2)));
+					final e:CacheEntry = ChartLoader.entryFor(cache, s.key, s.paths, Std.int(Math.max(1, threads() / 2)));
 					s.meta = e.meta;
 					s.cacheBytes = e.compBytes();
 				} catch (e:Dynamic) {
