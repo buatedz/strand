@@ -44,6 +44,8 @@ class NativeAudioSource
 	private var streamTimer:Timer;
 	private var timer:Timer;
 
+	private static var uploadedBytes:haxe.ds.WeakMap<lime.media.AudioBuffer, Int> = new haxe.ds.WeakMap();
+
 	public function new(parent:AudioSource)
 	{
 		this.parent = parent;
@@ -125,10 +127,12 @@ class NativeAudioSource
 				if (parent.buffer.__srcBuffer != null)
 				{
 					AL.bufferData(parent.buffer.__srcBuffer, format, parent.buffer.data, parent.buffer.data.length, parent.buffer.sampleRate);
+					uploadedBytes.set(parent.buffer, parent.buffer.data.length);
+					parent.buffer.data = null;
 				}
 			}
 
-			dataLength = parent.buffer.data.length;
+			dataLength = parent.buffer.data != null ? parent.buffer.data.length : uploadedBytes.exists(parent.buffer) ? uploadedBytes.get(parent.buffer) : 0;
 
 			handle = AL.createSource();
 
