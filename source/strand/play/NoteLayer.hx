@@ -38,6 +38,8 @@ class NoteLayer extends Sprite
 	public var skippedNotes(default, null):Float = 0;
 	public var maxDrawn(default, null):Int = 0;
 	public var maxSkipped(default, null):Float = 0;
+	public var mergedNotes(default, null):Float = 0;
+	public var maxMerged(default, null):Float = 0;
 
 	var sides:Array<Sprite> = [];
 
@@ -91,6 +93,7 @@ class NoteLayer extends Sprite
 	{
 		drawnNotes = 0;
 		skippedNotes = 0;
+		mergedNotes = 0;
 		final keys:Int = store.keys;
 		for (l in 0...store.laneCount) {
 			lastHit[l] = store.lastBefore(l, songTime);
@@ -109,6 +112,7 @@ class NoteLayer extends Sprite
 		}
 		if (drawnNotes > maxDrawn) maxDrawn = drawnNotes;
 		if (skippedNotes > maxSkipped) maxSkipped = skippedNotes;
+		if (mergedNotes > maxMerged) maxMerged = mergedNotes;
 	}
 
 	inline function centreX(l:Int):Float
@@ -191,6 +195,7 @@ class NoteLayer extends Sprite
 			final lens:Array<Float> = holds ? lane.lens : null;
 			final n:Int = lane.n;
 			var i:Int = lane.lowerBound(songTime);
+			final first:Int = i;
 			while (i < n) {
 				final t:Float = times[i];
 				if (t >= tEnd) break;
@@ -207,6 +212,7 @@ class NoteLayer extends Sprite
 				lastDrawn = t;
 				i++;
 			}
+			mergedNotes += lane.notesBefore(i) - lane.notesBefore(first) - (i - first);
 		}
 	}
 

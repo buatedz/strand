@@ -66,6 +66,8 @@ class PlayState extends FlxState
 	@:keep public var skippedCount:Float = 0;
 	@:keep public var maxRenderedNotes:Int = 0;
 	@:keep public var maxSkipped:Float = 0;
+	@:keep public var mergedCount:Float = 0;
+	@:keep public var maxMerged:Float = 0;
 	@:keep public var ffmpegMode:Bool = false;
 	@:keep public var chartNotes = {first: 0.0, written: 0.0, length: 0.0, capacity: 0.0};
 	@:keep public var chartStream = {madeUntil: 0.0, finished: true};
@@ -334,6 +336,8 @@ class PlayState extends FlxState
 		skippedCount = layer.skippedNotes;
 		maxRenderedNotes = layer.maxDrawn;
 		maxSkipped = layer.maxSkipped;
+		mergedCount = layer.mergedNotes;
+		maxMerged = layer.maxMerged;
 		chartNotes.written = chartNotes.length = chartNotes.capacity = store.chartNotesLoaded;
 		chartStream.madeUntil = store.streamMadeUntil;
 		chartStream.finished = store.streamFinished;
