@@ -251,7 +251,7 @@ class MenuState extends TermState
 			Prefs.scrollSpeed = 0;
 			return;
 		}
-		Prefs.scrollSpeed = Math.round(clamp(Prefs.scrollSpeed + 0.1 * d, 0.5, 10) * 10) / 10;
+		Prefs.scrollSpeed = Math.round(Math.max(0.5, Prefs.scrollSpeed + 0.1 * d) * 10) / 10;
 	}
 
 	function tidyCache():Void
