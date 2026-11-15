@@ -11,6 +11,7 @@ class SongInfo
 	public var paths:Array<String>;
 	public var key:String;
 	public var bytes:Float = 0;
+	public var workBytes:Float = 0;
 
 	public var meta:ChartMeta = null;
 	public var cacheBytes:Float = 0;
@@ -34,6 +35,7 @@ class Songs
 	public static var list(default, null):Array<SongInfo> = [];
 
 	static inline final PREWARM_BYTES:Float = 64 * 1048576.0;
+	static inline final THR_NOTE_BYTES:Float = 16;
 
 	static var queue:Array<SongInfo> = [];
 	static var queueLock:sys.thread.Mutex = new sys.thread.Mutex();
@@ -73,7 +75,12 @@ class Songs
 					s.key = ('data/' + folder + '/' + chart).toLowerCase();
 				}
 				s.bytes = 0;
-				for (p in s.paths) s.bytes += strand.native.Native.fileSize(p);
+				for (p in s.paths) {
+					final size:Float = strand.native.Native.fileSize(p);
+					final notes:Float = StringTools.endsWith(p.toLowerCase(), '.thr') ? strand.chart.ThrChart.noteCount(p) : -1;
+					s.bytes += size;
+					s.workBytes += notes >= 0 ? notes * THR_NOTE_BYTES : size;
+				}
 				refresh(s);
 				out.push(s);
 			}
@@ -126,7 +133,7 @@ class Songs
 
 	public static function prewarm(s:SongInfo):Void
 	{
-		if (s.meta != null || s.error != null || s.building || s.bytes > PREWARM_BYTES) return;
+		if (s.meta != null || s.error != null || s.building || s.workBytes > PREWARM_BYTES) return;
 		queueLock.acquire();
 		if (!queue.contains(s)) queue.unshift(s);
 		queueLock.release();

@@ -27,6 +27,26 @@ class ThrChart
 		}
 	}
 
+	public static function noteCount(path:String):Float
+	{
+		try {
+			final zip:ZipReader = new ZipReader(path);
+			var count:Float = -1;
+			try {
+				for (e in zip.entries)
+					if (e.name.indexOf('/') == -1 && e.name.toLowerCase().indexOf('-metadata.json') != -1) {
+						final meta:Dynamic = haxe.Json.parse(zip.readEntry(e).toString());
+						final parts:Array<Dynamic> = meta.tbl.parts;
+						if (parts != null && parts.length > 0 && parts[0].noteCount != null) count = parts[0].noteCount;
+					}
+			} catch (e:Dynamic) {}
+			zip.close();
+			return count;
+		} catch (e:Dynamic) {
+			return -1;
+		}
+	}
+
 	static function read(zip:ZipReader, path:String, onProgress:Float->Void):JsonChart.ChartResult
 	{
 		var metaEntry:ZipEntry = null;
