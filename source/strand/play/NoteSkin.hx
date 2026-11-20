@@ -279,6 +279,7 @@ class NoteSkin
 		}
 		atlas = new BitmapData(W, H, true, 0);
 		final ba:ByteArray = ByteArray.fromBytes(buf);
+		ba.endian = openfl.utils.Endian.BIG_ENDIAN;
 		ba.position = 0;
 		atlas.setPixels(new Rectangle(0, 0, W, H), ba);
 		for (c in cells) {
