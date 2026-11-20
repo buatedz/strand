@@ -27,6 +27,7 @@ class Prefs
 	public static var streamAhead:Int = 8000;
 
 	public static var noteSkin:String = 'Classic';
+	public static var noteColors:String = 'Normal';
 	public static var middlescroll:Bool = false;
 	public static var opponentNotes:Bool = true;
 
@@ -48,6 +49,7 @@ class Prefs
 
 	public static var showRendered:Bool = false;
 
+	public static final NOTE_COLORS:Array<String> = ['Normal', 'Legacy'];
 	public static final LIT_STYLES:Array<String> = ['Full Anim', 'BPM Based'];
 	public static final TIME_BARS:Array<String> = ['Time Left', 'Time Elapsed', 'Song Name', 'Disabled'];
 	public static final ALPHAS:Array<Float> = [0, 0.1, 0.25, 0.5, 0.65, 0.8, 1];
@@ -63,7 +65,7 @@ class Prefs
 	static final FIELDS:Array<String> = [
 		'downscroll', 'scrollSpeed', 'volume', 'music', 'framerate', 'vsync', 'antialiasing', 'fpsCounter', 'memUnit', 'discordRpc', 'stackMerge', 'drawSkip', 'streamJson', 'streamAhead',
 		'runSplitCharts', 'syncSplitSpeed', 'syncSplitBpm',
-		'noteSkin', 'middlescroll', 'opponentNotes', 'oppNoteAlpha', 'showNotes', 'drawHolds', 'lightOppStrums', 'lightPlayerStrums',
+		'noteSkin', 'noteColors', 'middlescroll', 'opponentNotes', 'oppNoteAlpha', 'showNotes', 'drawHolds', 'lightOppStrums', 'lightPlayerStrums',
 		'strumLitStyle', 'noteSplashes', 'oppNoteSplashes', 'splashType', 'hideHud', 'timeBar', 'showNps', 'showRendered'
 	];
 
@@ -88,6 +90,7 @@ class Prefs
 		if (!FRAMERATES.contains(framerate)) framerate = 'auto';
 		if (!strand.play.NoteSkin.SKINS.contains(noteSkin)) noteSkin = 'Classic';
 		if (!strand.play.NoteSkin.SPLASHES.contains(splashType)) splashType = 'Default';
+		if (!NOTE_COLORS.contains(noteColors)) noteColors = 'Normal';
 		if (!LIT_STYLES.contains(strumLitStyle)) strumLitStyle = 'Full Anim';
 		if (!TIME_BARS.contains(timeBar)) timeBar = 'Time Left';
 		if (!MEM_UNITS.contains(memUnit)) memUnit = 'auto';

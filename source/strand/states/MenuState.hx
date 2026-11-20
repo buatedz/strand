@@ -159,6 +159,7 @@ class MenuState extends TermState
 				];
 			case 'visuals': [
 					{label: 'note skin', value: Prefs.noteSkin, change: d -> Prefs.noteSkin = cycle(NoteSkin.SKINS, Prefs.noteSkin, d)},
+					{label: 'note colors', value: Prefs.noteColors.toLowerCase(), change: d -> Prefs.noteColors = cycle(Prefs.NOTE_COLORS, Prefs.noteColors, d)},
 					{label: 'middlescroll', value: onoff(Prefs.middlescroll), change: d -> Prefs.middlescroll = !Prefs.middlescroll},
 					{label: 'opponent notes', value: onoff(Prefs.opponentNotes), change: d -> Prefs.opponentNotes = !Prefs.opponentNotes},
 					{label: 'opponent note alpha', value: Math.round(Prefs.oppNoteAlpha * 100) + '%  (middlescroll)', change: d -> Prefs.oppNoteAlpha = cycle(Prefs.ALPHAS, Prefs.oppNoteAlpha, d)},
