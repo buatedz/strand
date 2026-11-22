@@ -1,6 +1,8 @@
 package strand.chart;
 
 import haxe.io.Bytes;
+import haxe.io.BytesData;
+import cpp.NativeArray;
 import strand.chart.NoteBuilder.BuilderLane;
 import strand.native.Native;
 
@@ -8,6 +10,8 @@ class JsonChart
 {
 	static inline final CHUNK:Int = 4 << 20;
 	static inline final RAW_LANES:Int = 64;
+	static inline final WINDOW:Int = 1024;
+	static inline final HURT:String = 'hurt note';
 
 	public var progress(default, null):Float = 0;
 
@@ -15,8 +19,13 @@ class JsonChart
 	var fileSize:Float = 0;
 	var fileRead:Float = 0;
 	var buf:Bytes;
+	var data:BytesData;
 	var pos:Int = 0;
 	var end:Int = 0;
+	var eof:Bool = false;
+	var direct:Bool;
+	var val:Float = 0;
+	var hurtNote:Bool = false;
 
 	var raw:Array<BuilderLane> = [];
 	var sectionStarted:Bool = false;
@@ -28,12 +37,18 @@ class JsonChart
 	var badNotes:Float = 0;
 	var sb:StringBuf = new StringBuf();
 
-	public function new() {}
+	public function new(direct:Bool = true)
+	{
+		this.direct = direct;
+	}
 
 	public static function load(path:String, ?onProgress:Float->Void):ChartResult
 	{
-		final p:JsonChart = new JsonChart();
-		return p.run(path, onProgress);
+		try {
+			return new JsonChart(true).run(path, onProgress);
+		} catch (e:LateMustHit) {
+			return new JsonChart(false).run(path, onProgress);
+		}
 	}
 
 	function run(path:String, onProgress:Float->Void):ChartResult
@@ -43,6 +58,7 @@ class JsonChart
 		fileSize = Native.seekEnd(file);
 		Native.seek(file, 0);
 		buf = Bytes.alloc(CHUNK);
+		data = buf.getData();
 		var root:Dynamic = null;
 		final reporter:Float->Void = onProgress;
 		try {
@@ -57,6 +73,7 @@ class JsonChart
 		}
 		Native.close(file);
 		buf = null;
+		data = null;
 		return finish(root, path);
 	}
 
@@ -146,10 +163,31 @@ class JsonChart
 	function fill():Bool
 	{
 		if (pos < end) return true;
-		final n:Int = Native.read(file, buf, 0, CHUNK);
 		pos = 0;
-		end = n > 0 ? n : 0;
-		fileRead += end;
+		end = 0;
+		return readMore();
+	}
+
+	function ensure():Void
+	{
+		if (eof || end - pos >= WINDOW) return;
+		final keep:Int = end - pos;
+		if (keep > 0 && pos > 0) buf.blit(0, buf, pos, keep);
+		pos = 0;
+		end = keep;
+		while (end < WINDOW && readMore()) {}
+	}
+
+	function readMore():Bool
+	{
+		if (eof) return false;
+		final n:Int = Native.read(file, buf, end, CHUNK - end);
+		if (n <= 0) {
+			eof = true;
+			return false;
+		}
+		end += n;
+		fileRead += n;
 		if (fileSize > 0) {
 			progress = fileRead / fileSize;
 			if (lastReport != null && progress - reportAt >= 0.002) {
@@ -157,7 +195,7 @@ class JsonChart
 				lastReport(progress);
 			}
 		}
-		return end > 0;
+		return true;
 	}
 
 	inline function peek():Int
@@ -193,7 +231,7 @@ class JsonChart
 				return parseObject();
 			case '['.code:
 				if (key == 'sectionNotes') {
-					streamSectionNotes();
+					streamSectionNotes(-1);
 					return null;
 				}
 				return parseArray();
@@ -223,6 +261,7 @@ class JsonChart
 		expect('{'.code);
 		final o:Dynamic = {};
 		var hadNotes:Bool = false;
+		var directUsed:Bool = false;
 		final pendBefore:Int = pendCount;
 		skipWs();
 		if (peek() == '}'.code) {
@@ -233,9 +272,21 @@ class JsonChart
 			skipWs();
 			final k:String = parseString();
 			expect(':'.code);
-			if (k == 'sectionNotes') hadNotes = true;
-			final v:Dynamic = parseValue(k);
-			if (k != 'sectionNotes') Reflect.setField(o, k, v);
+			if (k == 'sectionNotes') {
+				hadNotes = true;
+				skipWs();
+				if (peek() == '['.code) {
+					var bit:Int = -1;
+					if (direct && Reflect.hasField(o, 'mustHitSection')) {
+						bit = Reflect.field(o, 'mustHitSection') == true ? 1 : 0;
+						directUsed = true;
+					}
+					streamSectionNotes(bit);
+				} else parseValue(k);
+			} else {
+				if (directUsed && k == 'mustHitSection') throw new LateMustHit();
+				Reflect.setField(o, k, parseValue(k));
+			}
 			skipWs();
 			final c:Int = next();
 			if (c == ','.code) continue;
@@ -397,7 +448,7 @@ class JsonChart
 		return neg ? -v : v;
 	}
 
-	function streamSectionNotes():Void
+	function streamSectionNotes(bit:Int):Void
 	{
 		expect('['.code);
 		skipWs();
@@ -406,8 +457,12 @@ class JsonChart
 			return;
 		}
 		while (true) {
+			ensure();
+			final f:Int = fastNote(bit);
+			if (f == ','.code) continue;
+			if (f == ']'.code) break;
 			skipWs();
-			if (peek() == '['.code) readNote();
+			if (peek() == '['.code) readNote(bit);
 			else parseValue(null);
 			skipWs();
 			final c:Int = next();
@@ -417,7 +472,165 @@ class JsonChart
 		}
 	}
 
-	function readNote():Void
+	function fastNote(bit:Int):Int
+	{
+		final d:BytesData = data;
+		final lim:Int = end;
+		var i:Int = skipWsAt(d, pos, lim);
+		if (i >= lim || NativeArray.unsafeGet(d, i) != '['.code) return 0;
+		i = scanNum(d, skipWsAt(d, i + 1, lim), lim);
+		if (i < 0) return 0;
+		final time:Float = val;
+		i = skipWsAt(d, i, lim);
+		if (i >= lim || NativeArray.unsafeGet(d, i) != ','.code) return 0;
+		i = scanNum(d, skipWsAt(d, i + 1, lim), lim);
+		if (i < 0) return 0;
+		final lane:Float = val;
+		var len:Float = 0;
+		var isHurt:Bool = false;
+		var k:Int = 2;
+		while (true) {
+			i = skipWsAt(d, i, lim);
+			if (i >= lim) return 0;
+			var c:Int = NativeArray.unsafeGet(d, i);
+			if (c == ']'.code) break;
+			if (c != ','.code) return 0;
+			i = skipWsAt(d, i + 1, lim);
+			if (i >= lim) return 0;
+			c = NativeArray.unsafeGet(d, i);
+			if (k == 2) {
+				i = scanNum(d, i, lim);
+				if (i < 0) return 0;
+				len = val;
+			} else if (c == '"'.code) {
+				i = scanStr(d, i + 1, lim);
+				if (i < 0) return 0;
+				if (k == 3 && hurtNote) isHurt = true;
+			} else if (c == 't'.code) {
+				if (!lit(d, i, lim, 't'.code, 'r'.code, 'u'.code, 'e'.code)) return 0;
+				i += 4;
+			} else if (c == 'f'.code) {
+				if (i + 4 >= lim || NativeArray.unsafeGet(d, i + 4) != 'e'.code || !lit(d, i, lim, 'f'.code, 'a'.code, 'l'.code, 's'.code)) return 0;
+				i += 5;
+			} else if (c == 'n'.code) {
+				if (!lit(d, i, lim, 'n'.code, 'u'.code, 'l'.code, 'l'.code)) return 0;
+				i += 4;
+			} else {
+				i = scanNum(d, i, lim);
+				if (i < 0) return 0;
+			}
+			k++;
+		}
+		i = skipWsAt(d, i + 1, lim);
+		if (i >= lim) return 0;
+		final sep:Int = NativeArray.unsafeGet(d, i);
+		if (sep != ','.code && sep != ']'.code) return 0;
+		pos = i + 1;
+		if (isHurt) hurt++;
+		else if (lane < 0 || lane >= RAW_LANES) badNotes++;
+		else addNote(time, Std.int(lane), len, bit);
+		return sep;
+	}
+
+	static inline function skipWsAt(d:BytesData, i:Int, lim:Int):Int
+	{
+		while (i < lim) {
+			final c:Int = NativeArray.unsafeGet(d, i);
+			if (c == 32 || c == 10 || c == 13 || c == 9) i++;
+			else break;
+		}
+		return i;
+	}
+
+	static inline function lit(d:BytesData, i:Int, lim:Int, a:Int, b:Int, c:Int, e:Int):Bool
+		return i + 3 < lim && NativeArray.unsafeGet(d, i) == a && NativeArray.unsafeGet(d, i + 1) == b && NativeArray.unsafeGet(d, i + 2) == c
+			&& NativeArray.unsafeGet(d, i + 3) == e;
+
+	function scanStr(d:BytesData, i:Int, lim:Int):Int
+	{
+		final start:Int = i;
+		while (i < lim) {
+			final c:Int = NativeArray.unsafeGet(d, i);
+			if (c == '"'.code) break;
+			if (c == '\\'.code || c >= 128) return -1;
+			i++;
+		}
+		if (i >= lim) return -1;
+		hurtNote = i - start == 9;
+		if (hurtNote) for (j in 0...9) {
+			var c:Int = NativeArray.unsafeGet(d, start + j);
+			if (c >= 'A'.code && c <= 'Z'.code) c += 32;
+			if (c != StringTools.fastCodeAt(HURT, j)) {
+				hurtNote = false;
+				break;
+			}
+		}
+		return i + 1;
+	}
+
+	function scanNum(d:BytesData, i:Int, lim:Int):Int
+	{
+		if (i >= lim) return -1;
+		var c:Int = NativeArray.unsafeGet(d, i);
+		var neg:Bool = false;
+		if (c == '-'.code) {
+			neg = true;
+			i++;
+			c = i < lim ? NativeArray.unsafeGet(d, i) : -1;
+		}
+		var mant:Float = 0;
+		var digits:Int = 0;
+		var scale:Int = 0;
+		var any:Bool = false;
+		while (c >= 48 && c <= 57) {
+			if (digits < 18) {
+				mant = mant * 10 + (c - 48);
+				if (mant != 0) digits++;
+			} else scale++;
+			any = true;
+			i++;
+			c = i < lim ? NativeArray.unsafeGet(d, i) : -1;
+		}
+		if (c == '.'.code) {
+			i++;
+			c = i < lim ? NativeArray.unsafeGet(d, i) : -1;
+			while (c >= 48 && c <= 57) {
+				if (digits < 18) {
+					mant = mant * 10 + (c - 48);
+					if (mant != 0) digits++;
+					scale--;
+				}
+				any = true;
+				i++;
+				c = i < lim ? NativeArray.unsafeGet(d, i) : -1;
+			}
+		}
+		if (!any || c < 0 || c == 'e'.code || c == 'E'.code || c == '.'.code) return -1;
+		var v:Float = mant;
+		if (scale != 0) {
+			if (scale > 0) v = scale < 23 ? v * POW10[scale] : v * Math.pow(10, scale);
+			else v = -scale < 23 ? v / POW10[-scale] : v / Math.pow(10, -scale);
+		}
+		val = neg ? -v : v;
+		return i;
+	}
+
+	inline function addNote(time:Float, lane:Int, len:Float, bit:Int):Void
+	{
+		if (bit < 0) {
+			pendTime[pendCount] = time;
+			pendLane[pendCount] = lane;
+			pendLen[pendCount] = len;
+			pendCount++;
+		} else {
+			final bucket:Int = lane * 2 + bit;
+			var l:BuilderLane = raw[bucket];
+			if (l == null) raw[bucket] = l = new BuilderLane();
+			l.add(Math.fround(time * 1000), len > 0 ? Math.fround(len * 1000) : 0, 1);
+		}
+	}
+
+	function readNote(bit:Int):Void
 	{
 		pos++;
 		var time:Float = Math.NaN, lane:Float = -1, len:Float = 0;
@@ -459,10 +672,7 @@ class JsonChart
 			badNotes++;
 			return;
 		}
-		pendTime[pendCount] = time;
-		pendLane[pendCount] = Std.int(lane);
-		pendLen[pendCount] = len;
-		pendCount++;
+		addNote(time, Std.int(lane), len, bit);
 	}
 
 	function flushSection(section:Dynamic, from:Int):Void
@@ -503,3 +713,8 @@ class JsonChart
 }
 
 typedef ChartResult = {meta:ChartMeta, builder:NoteBuilder};
+
+class LateMustHit
+{
+	public function new() {}
+}
