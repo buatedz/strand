@@ -2,6 +2,7 @@
   <set name="STRAND_NATIVE_DIR" value="${this_dir}" />
   <files id="haxe">
     <compilervalue name="-I" value="${STRAND_NATIVE_DIR}/lzma/" />
+    <compilervalue name="-I" value="${STRAND_NATIVE_DIR}/zstd/" />
   </files>
   <files id="strand_lzma" dir="${STRAND_NATIVE_DIR}/lzma">
     <compilerflag value="-DZ7_ST" />
@@ -12,7 +13,23 @@
     <file name="LzFind.c" />
     <file name="CpuArch.c" />
   </files>
+  <files id="strand_zstd" dir="${STRAND_NATIVE_DIR}/zstd">
+    <compilerflag value="-DZSTD_DISABLE_ASM" />
+    <compilerflag value="-DZSTD_LEGACY_SUPPORT=0" />
+    <compilervalue name="-I" value="${STRAND_NATIVE_DIR}/zstd/" />
+    <file name="common/debug.c" />
+    <file name="common/entropy_common.c" />
+    <file name="common/error_private.c" />
+    <file name="common/fse_decompress.c" />
+    <file name="common/xxhash.c" />
+    <file name="common/zstd_common.c" />
+    <file name="decompress/huf_decompress.c" />
+    <file name="decompress/zstd_ddict.c" />
+    <file name="decompress/zstd_decompress.c" />
+    <file name="decompress/zstd_decompress_block.c" />
+  </files>
   <target id="haxe">
     <files id="strand_lzma" />
+    <files id="strand_zstd" />
   </target>
 </xml>

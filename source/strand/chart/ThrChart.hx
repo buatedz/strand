@@ -192,6 +192,7 @@ class ZipReader
 	public static inline final STORE:Int = 0;
 	public static inline final DEFLATE:Int = 8;
 	public static inline final LZMA:Int = 14;
+	public static inline final ZSTD:Int = 93;
 
 	public var path(default, null):String;
 	public var entries(default, null):Array<ZipEntry> = [];
@@ -336,6 +337,8 @@ class ZipReader
 
 				if (len < 9 || src.getUInt16(pos + 2) != 5) throw 'LZMA data is broken';
 				if (!Native.lzmaDecode(src, pos + 9, len - 9, dst, dstPos, dstLen, src, pos + 4)) throw 'LZMA data is broken';
+			case ZSTD:
+				if (!Native.zstdDecode(src, pos, len, dst, dstPos, dstLen)) throw 'Zstd data is broken';
 			default:
 				throw 'Unknown compression method $method';
 		}

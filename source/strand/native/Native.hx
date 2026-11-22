@@ -9,6 +9,7 @@ import haxe.io.Bytes;
 #include <cstring>
 #include <mutex>
 #include "strand_lzma.h"
+#include "zstd.h"
 
 static std::mutex strandFileLock;
 static FILE *strandFiles[1024];
@@ -155,6 +156,21 @@ static bool strandLzmaDecode(Array<unsigned char> src, int srcPos, int srcLen, A
 	hx::ExitGCFreeZone();
 	return r == 0;
 }
+
+static bool strandZstdDecode(Array<unsigned char> src, int srcPos, int srcLen, Array<unsigned char> dst, int dstPos, int dstLen)
+{
+	static thread_local ZSTD_DCtx *ctx = 0;
+	if (!ctx) ctx = ZSTD_createDCtx();
+	if (!ctx) return false;
+	unsigned char * volatile pinSrc = (unsigned char *)src->getBase();
+	unsigned char * volatile pinDst = (unsigned char *)dst->getBase();
+	const unsigned char *s = (const unsigned char *)pinSrc + srcPos;
+	unsigned char *d = (unsigned char *)pinDst + dstPos;
+	hx::EnterGCFreeZone();
+	size_t r = ZSTD_decompressDCtx(ctx, d, (size_t)dstLen, s, (size_t)srcLen);
+	hx::ExitGCFreeZone();
+	return !ZSTD_isError(r) && r == (size_t)dstLen;
+}
 ')
 #end
 class Native
@@ -266,6 +282,16 @@ class Native
 		#if cpp
 		return untyped __cpp__('strandLzmaDecode({0}, {1}, {2}, {3}, {4}, {5}, {6}, {7})', src.getData(), srcPos, srcLen, dst.getData(), dstPos, dstLen,
 			props.getData(), propsPos);
+		#else
+		return false;
+		#end
+	}
+
+	public static function zstdDecode(src:Bytes, srcPos:Int, srcLen:Int, dst:Bytes, dstPos:Int, dstLen:Int):Bool
+	{
+		if (srcPos < 0 || srcPos + srcLen > src.length || dstPos < 0 || dstPos + dstLen > dst.length) return false;
+		#if cpp
+		return untyped __cpp__('strandZstdDecode({0}, {1}, {2}, {3}, {4}, {5})', src.getData(), srcPos, srcLen, dst.getData(), dstPos, dstLen);
 		#else
 		return false;
 		#end

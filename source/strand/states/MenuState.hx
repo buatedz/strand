@@ -201,6 +201,7 @@ class MenuState extends TermState
 					{label: 'note art', value: "Friday Night Funkin' by the Funkin' Crew"},
 					{label: 'font', value: 'Space Mono by Colophon (OFL)'},
 					{label: 'compression', value: 'LZMA SDK by Igor Pavlov'},
+					{label: 'zstd', value: 'Zstandard by Meta (BSD)'},
 					{gap: true},
 					{label: 'you', value: 'for playing'},
 					{gap: true},
