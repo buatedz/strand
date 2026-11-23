@@ -299,6 +299,8 @@ class PlayState extends FlxState
 			layer.skipPx = adaptiveSkip;
 		} else layer.skipPx = Prefs.drawSkip;
 		if (splitParts.length > 1) syncSplit();
+		layer.scaleX = FlxG.scaleMode.scale.x;
+		layer.scaleY = FlxG.scaleMode.scale.y;
 		layer.render(songTime);
 
 		updateStats();
