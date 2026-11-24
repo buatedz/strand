@@ -1,7 +1,6 @@
 # strand
 
-fnf engine (barely) but its only for showcases. botplay is always on, you cant actually play
-this is meant for running heavy fnf charts with low ram usage!! 
+basic fnf chart player meant for showcasing very huge charts on low ram usage.
 
 ## stuff it has
 - stack merging + skipping notes that are too close (both in options)
@@ -26,9 +25,10 @@ haxelib git hxluajit https://github.com/MAJigsaw77/hxluajit
 haxelib run lime build windows
 ```
 it should all be ready after that!
+p.s. lime has to be exactly 8.3.2, because strand replaces one of lime's audio files with its own copy
 
 ## how to use
 open strand.exe preferably in an empty folder, it makes the assets folder and the settings.json for you
 charts go in assets/data/songname, audio goes in assets/songs/songname you get it its the same as psych
 
-only 4 key for now
+only 4 key for now..
